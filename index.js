@@ -9,14 +9,35 @@ const cache = new NodeCache({ stdTTL: 3600 });
 
 // ─── Ruh Hali Tanımları ───────────────────────────────────────────────────────
 const MOODS = {
-  mutlu:      { label: "😄 Mutlu & Enerjik",      genres: [35, 16],    sort: "popularity.desc" },
-  duygusal:   { label: "😢 Duygusal",              genres: [18, 10749], sort: "vote_average.desc" },
-  stresli:    { label: "😰 Kaçmak İstiyorum",      genres: [12, 14],    sort: "popularity.desc" },
-  heyecan:    { label: "😱 Heyecan İstiyorum",     genres: [28, 53],    sort: "popularity.desc" },
-  dusunmek:   { label: "🧠 Düşünmek İstiyorum",    genres: [878, 9648], sort: "vote_average.desc" },
-  rahatlamak: { label: "😴 Rahatlamak İstiyorum",  genres: [99, 35],    sort: "vote_average.desc" },
-  korku:      { label: "👻 Korku Gecesi",           genres: [27],        sort: "popularity.desc" },
+  mutlu:      { label: "😄 Mutlu & Enerjik",       genres: [35, 10751], sort: "popularity.desc" },
+  // Komedi + Aile — hafif, güldüren, pozitif enerji
+
+  romantik:   { label: "🌹 Romantik Akşam",        genres: [10749, 18], sort: "vote_average.desc" },
+  // Romance + Drama — duygusal ama hüzünlü değil, sıcak
+
+  duygusal:   { label: "😢 İyi Bir Ağlama",        genres: [18],        sort: "vote_average.desc", voteMin: 500 },
+  // Saf Drama — yüksek puanlı, gerçekten sarsıcı yapımlar
+
+  aksiyon:    { label: "💥 Aksiyon & Gerilim",     genres: [28, 53],    sort: "popularity.desc" },
+  // Action + Thriller — tempolu, nefes kesen
+
+  fantezi:    { label: "🧙 Fantezi & Macera",      genres: [14, 12],    sort: "popularity.desc" },
+  // Fantasy + Adventure — tamamen başka bir dünyaya kaçış, tutarlı eşleşme
+
+  gizem:      { label: "🔍 Suç & Gizem",           genres: [80, 9648],  sort: "vote_average.desc" },
+  // Crime + Mystery — dedektif, noir, zeka gerektiren
+
+  bilimkurgu: { label: "🚀 Bilim Kurgu",           genres: [878],       sort: "vote_average.desc", voteMin: 300 },
+  // Sci-Fi — felsefi, distopik, uzay — kendi kategorisini hak ediyor
+
+  korku:      { label: "👻 Korku Gecesi",           genres: [27, 53],    sort: "popularity.desc" },
+  // Horror + Thriller — daha geniş korku deneyimi
+
+  belgesel:   { label: "🎙️ Belgesel & Gerçek",    genres: [99],        sort: "vote_average.desc" },
+  // Documentary — öğrenmek, düşünmek, rahatlamak
+
   nostalji:   { label: "🕰️ Nostalji",              genres: [18, 35],    sort: "vote_average.desc", yearMax: "1999" },
+  // Klasikler — 1999 öncesi, zamana meydan okuyan yapımlar
 };
 
 const MOOD_KEYS = Object.keys(MOODS);
@@ -70,7 +91,7 @@ async function fetchMood(moodKey, type, page = 1) {
     with_genres: cfg.genres.join(","),
     sort_by: cfg.sort,
     page,
-    "vote_count.gte": 150,
+    "vote_count.gte": cfg.voteMin || 150,
     include_adult: false,
     language: "tr-TR",
   };
