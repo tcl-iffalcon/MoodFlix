@@ -8,36 +8,76 @@ const TMDB_BASE = "https://api.themoviedb.org/3";
 const cache = new NodeCache({ stdTTL: 3600 });
 
 // ─── Ruh Hali Tanımları ───────────────────────────────────────────────────────
+// TMDB film ve dizi tür ID'leri farklıdır!
+// Film:  Action=28, Thriller=53, Sci-Fi=878, Animation=16, Family=10751
+// Dizi:  Action&Adventure=10759, Sci-Fi&Fantasy=10765, Animation=16, Family=10751
+// Ortak: Drama=18, Comedy=35, Horror=27, Mystery=9648, Crime=80, Documentary=99, Romance=10749
+
 const MOODS = {
-  mutlu:      { label: "😄 Mutlu & Enerjik",       genres: [35, 10751], sort: "popularity.desc" },
-  // Komedi + Aile — hafif, güldüren, pozitif enerji
-
-  romantik:   { label: "🌹 Romantik Akşam",        genres: [10749, 18], sort: "vote_average.desc" },
-  // Romance + Drama — duygusal ama hüzünlü değil, sıcak
-
-  duygusal:   { label: "😢 İyi Bir Ağlama",        genres: [18],        sort: "vote_average.desc", voteMin: 500 },
-  // Saf Drama — yüksek puanlı, gerçekten sarsıcı yapımlar
-
-  aksiyon:    { label: "💥 Aksiyon & Gerilim",     genres: [28, 53],    sort: "popularity.desc" },
-  // Action + Thriller — tempolu, nefes kesen
-
-  fantezi:    { label: "🧙 Fantezi & Macera",      genres: [14, 12],    sort: "popularity.desc" },
-  // Fantasy + Adventure — tamamen başka bir dünyaya kaçış, tutarlı eşleşme
-
-  gizem:      { label: "🔍 Suç & Gizem",           genres: [80, 9648],  sort: "vote_average.desc" },
-  // Crime + Mystery — dedektif, noir, zeka gerektiren
-
-  bilimkurgu: { label: "🚀 Bilim Kurgu",           genres: [878],       sort: "vote_average.desc", voteMin: 300 },
-  // Sci-Fi — felsefi, distopik, uzay — kendi kategorisini hak ediyor
-
-  korku:      { label: "👻 Korku Gecesi",           genres: [27, 53],    sort: "popularity.desc" },
-  // Horror + Thriller — daha geniş korku deneyimi
-
-  belgesel:   { label: "🎙️ Belgesel & Gerçek",    genres: [99],        sort: "vote_average.desc" },
-  // Documentary — öğrenmek, düşünmek, rahatlamak
-
-  nostalji:   { label: "🕰️ Nostalji",              genres: [18, 35],    sort: "vote_average.desc", yearMax: "1999" },
-  // Klasikler — 1999 öncesi, zamana meydan okuyan yapımlar
+  mutlu: {
+    label: "😄 Mutlu & Enerjik",
+    movieGenres: [35, 10751],   // Comedy, Family
+    tvGenres:    [35, 10751],   // Comedy, Family
+    sort: "popularity.desc",
+  },
+  romantik: {
+    label: "🌹 Romantik Akşam",
+    movieGenres: [10749, 18],   // Romance, Drama
+    tvGenres:    [10749, 18],   // Romance, Drama
+    sort: "popularity.desc",
+  },
+  duygusal: {
+    label: "😢 İyi Bir Ağlama",
+    movieGenres: [18],          // Drama
+    tvGenres:    [18],          // Drama
+    sort: "vote_average.desc",
+    voteMin: 2000,
+  },
+  aksiyon: {
+    label: "💥 Aksiyon & Gerilim",
+    movieGenres: [28, 53],      // Action, Thriller
+    tvGenres:    [10759, 80],   // Action & Adventure, Crime
+    sort: "popularity.desc",
+  },
+  fantezi: {
+    label: "🧙 Fantezi & Macera",
+    movieGenres: [14, 12],      // Fantasy, Adventure
+    tvGenres:    [10765, 10759],// Sci-Fi & Fantasy, Action & Adventure
+    sort: "popularity.desc",
+  },
+  gizem: {
+    label: "🔍 Suç & Gizem",
+    movieGenres: [80, 9648],    // Crime, Mystery
+    tvGenres:    [80, 9648],    // Crime, Mystery
+    sort: "popularity.desc",
+  },
+  bilimkurgu: {
+    label: "🚀 Bilim Kurgu",
+    movieGenres: [878],         // Science Fiction
+    tvGenres:    [10765],       // Sci-Fi & Fantasy
+    sort: "popularity.desc",
+    voteMin: 800,
+  },
+  korku: {
+    label: "👻 Korku Gecesi",
+    movieGenres: [27, 53],      // Horror, Thriller
+    tvGenres:    [27, 9648],    // Horror, Mystery
+    sort: "popularity.desc",
+  },
+  belgesel: {
+    label: "🎙️ Belgesel & Gerçek",
+    movieGenres: [99],          // Documentary
+    tvGenres:    [99],          // Documentary
+    sort: "popularity.desc",
+  },
+  nostalji: {
+    label: "🕰️ Nostalji",
+    movieGenres: [18, 35],      // Drama, Comedy
+    tvGenres:    [18, 35],      // Drama, Comedy
+    sort: "vote_average.desc",
+    voteMin: 3000,
+    yearMax: "1999",
+  },
 };
 
 const MOOD_KEYS = Object.keys(MOODS);
@@ -85,20 +125,26 @@ async function fetchMood(moodKey, type, page = 1) {
 
   const cfg = MOODS[moodKey];
   const mediaType = type === "series" ? "tv" : "movie";
+  const genres = type === "series" ? cfg.tvGenres : cfg.movieGenres;
 
   const params = {
     api_key: TMDB_KEY,
-    with_genres: cfg.genres.join(","),
+    with_genres: genres.join(","),
     sort_by: cfg.sort,
     page,
-    "vote_count.gte": cfg.voteMin || 150,
+    "vote_count.gte": cfg.voteMin || 1000,
+    "vote_average.gte": cfg.yearMax ? 7.0 : 6.5,
     include_adult: false,
     language: "tr-TR",
   };
 
   if (cfg.yearMax) {
+    // Nostalji: 1999 öncesi
     params[mediaType === "movie" ? "release_date.lte" : "first_air_date.lte"] =
       `${cfg.yearMax}-12-31`;
+  } else {
+    // Diğerleri: 2010 sonrası — güncel ve popüler içerikler
+    params[mediaType === "movie" ? "release_date.gte" : "first_air_date.gte"] = "2010-01-01";
   }
 
   try {
