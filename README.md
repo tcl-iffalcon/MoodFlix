@@ -1,4 +1,4 @@
-# 🎬 NuvioMood — Stremio Eklentisi
+# 🎬 MoodFlix — Stremio Eklentisi
 
 Ruh haline göre film ve dizi keşfet.
 
