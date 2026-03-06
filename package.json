@@ -1,7 +1,7 @@
 {
-  "name": "nuviomood",
+  "name": "MoodFlix",
   "version": "1.0.0",
-  "description": "Ruh haline göre film ve dizi keşfet - Stremio Eklentisi",
+  "description": "Stremio ve Nuvio'da ruh haline göre film ve dizi keşfet.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
