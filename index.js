@@ -132,10 +132,10 @@ async function fetchMood(moodKey, type, page = 1) {
     with_genres: genres.join(","),
     sort_by: cfg.sort,
     page,
-    "vote_count.gte": cfg.voteMin || 1000,
-    "vote_average.gte": cfg.yearMax ? 7.0 : 6.5,
+    "vote_count.gte": type === "series" ? (cfg.voteMin ? Math.floor(cfg.voteMin / 5) : 200) : (cfg.voteMin || 1000),
+    "vote_average.gte": cfg.yearMax ? 7.0 : (type === "series" ? 6.0 : 6.5),
     include_adult: false,
-    language: "tr-TR",
+    language: "en-US",
   };
 
   if (cfg.yearMax) {
@@ -149,20 +149,22 @@ async function fetchMood(moodKey, type, page = 1) {
 
   try {
     const { data } = await axios.get(`${TMDB_BASE}/discover/${mediaType}`, { params });
-    const results = (data.results || []).map((item) => ({
-      id: `tmdb:${item.id}`,
-      type,
-      name: item.title || item.name,
-      poster: item.poster_path
-        ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-        : null,
-      background: item.backdrop_path
-        ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
-        : null,
-      description: item.overview,
-      releaseInfo: (item.release_date || item.first_air_date || "").substring(0, 4),
-      imdbRating: item.vote_average ? item.vote_average.toFixed(1) : null,
-    }));
+    // Poster eksik olanlar için en-US ile tekrar çekmeye gerek yok,
+    // TMDB w500 poster_path her zaman İngilizce poster döner, dil bağımsız
+    const results = (data.results || [])
+      .filter((item) => item.poster_path) // postersiz içerikleri filtrele
+      .map((item) => ({
+        id: `tmdb:${item.id}`,
+        type,
+        name: item.title || item.name,
+        poster: `https://image.tmdb.org/t/p/w500${item.poster_path}`,
+        background: item.backdrop_path
+          ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}`
+          : null,
+        description: item.overview,
+        releaseInfo: (item.release_date || item.first_air_date || "").substring(0, 4),
+        imdbRating: item.vote_average ? item.vote_average.toFixed(1) : null,
+      }));
 
     cache.set(cacheKey, results);
     return results;
