@@ -24,28 +24,28 @@ const MOOD_LABELS = MOOD_KEYS.map((k) => MOODS[k].label);
 
 // ─── Manifest ─────────────────────────────────────────────────────────────────
 const manifest = {
-  id: "community.nuviomood",
+  id: "community.moodflix",
   version: "1.0.0",
-  name: "NuvioMood",
-  description: "Ruh haline göre film ve dizi keşfet 🎬",
+  name: "MoodFlix",
+  description: "Stremio ve Nuvio'da ruh haline göre film ve dizi keşfet. 🎬",
   logo: "https://i.imgur.com/qFuHMcl.png",
   resources: ["catalog", "meta"],
   types: ["movie", "series"],
   idPrefixes: ["tmdb:"],
   catalogs: [
     {
-      id: "nuviomood_all",
+      id: "moodflix_all",
       type: "movie",
-      name: "🎬 NuvioMood",
+      name: "🎬 MoodFlix",
       extra: [
         { name: "genre", isRequired: false, options: MOOD_LABELS },
         { name: "skip", isRequired: false },
       ],
     },
     {
-      id: "nuviomood_all_series",
+      id: "moodflix_all_series",
       type: "series",
-      name: "📺 NuvioMood",
+      name: "📺 MoodFlix",
       extra: [
         { name: "genre", isRequired: false, options: MOOD_LABELS },
         { name: "skip", isRequired: false },
@@ -107,8 +107,8 @@ async function fetchMood(moodKey, type, page = 1) {
 
 // ─── Catalog Handler ──────────────────────────────────────────────────────────
 builder.defineCatalogHandler(async ({ type, id, extra }) => {
-  const isMovie = id === "nuviomood_all" && type === "movie";
-  const isSeries = id === "nuviomood_all_series" && type === "series";
+  const isMovie = id === "moodflix_all" && type === "movie";
+  const isSeries = id === "moodflix_all_series" && type === "series";
   if (!isMovie && !isSeries) return { metas: [] };
 
   const selectedGenre = extra?.genre;
@@ -184,7 +184,7 @@ builder.defineMetaHandler(async ({ type, id }) => {
   }
 });
 
-// ─── Sunucu ───────────────────────────────────────────────────────────────────
+// ─── Sunucu ───────────────────────────────────────────────────="────────────
 const PORT = process.env.PORT || 7000;
 serveHTTP(builder.getInterface(), { port: PORT });
-console.log(`🎬 NuvioMood çalışıyor → http://localhost:${PORT}/manifest.json`);
+console.log(`🎬 MoodFlix çalışıyor → http://localhost:${PORT}/manifest.json`);
