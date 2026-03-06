@@ -253,31 +253,23 @@ builder.defineMetaHandler(async ({ type, id }) => {
 
 // ─── Sunucu ───────────────────────────────────────────────────="────────────
 const PORT = process.env.PORT || 7000;
-const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { getRouter } = require("stremio-addon-sdk");
 
-// stremio-addon-sdk'nin interface'ini al
-const addonInterface = builder.getInterface();
+const router = getRouter(builder.getInterface());
 
-// Logo ve manifest'i serve eden basit HTTP sunucu
-const server = http.createServer((req, res) => {
-  if (req.url === "/logo.svg") {
-    const logoPath = path.join(__dirname, "logo.svg");
-    if (fs.existsSync(logoPath)) {
-      res.writeHead(200, { "Content-Type": "image/svg+xml" });
-      fs.createReadStream(logoPath).pipe(res);
-    } else {
-      res.writeHead(404);
-      res.end("Not found");
-    }
-    return;
+router.get("/logo.svg", (req, res) => {
+  const logoPath = path.join(__dirname, "logo.svg");
+  if (fs.existsSync(logoPath)) {
+    res.setHeader("Content-Type", "image/svg+xml");
+    fs.createReadStream(logoPath).pipe(res);
+  } else {
+    res.status(404).send("Not found");
   }
-  // Diğer tüm istekleri addon'a ilet
-  addonInterface.router(req, res);
 });
 
-server.listen(PORT, () => {
+router.listen(PORT, () => {
   console.log(`🎬 MoodFlix çalışıyor → http://localhost:${PORT}/manifest.json`);
   console.log(`🖼️  Logo         → http://localhost:${PORT}/logo.svg`);
 });
