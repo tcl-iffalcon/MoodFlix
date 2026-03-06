@@ -253,6 +253,7 @@ builder.defineMetaHandler(async ({ type, id }) => {
 
 // ─── Sunucu ───────────────────────────────────────────────────="────────────
 const PORT = process.env.PORT || 7000;
+const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const { getRouter } = require("stremio-addon-sdk");
@@ -269,7 +270,7 @@ router.get("/logo.svg", (req, res) => {
   }
 });
 
-router.listen(PORT, () => {
+http.createServer(router).listen(PORT, () => {
   console.log(`🎬 MoodFlix çalışıyor → http://localhost:${PORT}/manifest.json`);
   console.log(`🖼️  Logo         → http://localhost:${PORT}/logo.svg`);
 });
