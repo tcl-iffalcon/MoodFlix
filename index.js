@@ -13,25 +13,31 @@ const cache = new NodeCache({ stdTTL: 3600 });
 // Dizi:  Action&Adventure=10759, Sci-Fi&Fantasy=10765, Animation=16, Family=10751
 // Ortak: Drama=18, Comedy=35, Horror=27, Mystery=9648, Crime=80, Documentary=99, Romance=10749
 
+// TMDB TV türleri (film türlerinden FARKLI):
+// 10759=Action&Adventure, 10765=Sci-Fi&Fantasy, 10768=War&Politics
+// 16=Animation, 35=Comedy, 80=Crime, 99=Documentary, 18=Drama
+// 10751=Family, 10762=Kids, 9648=Mystery, 10764=Reality, 10766=Soap, 37=Western
+// NOT: with_genres'da | (pipe) = OR, , (comma) = AND
+
 const MOODS = {
   mutlu: {
     label: "😄 Mutlu & Enerjik",
     movieGenres: [35, 10751],   // Comedy, Family
-    tvGenres:    [35, 10751],   // Comedy, Family
+    tvGenres:    [35, 10751, 16], // Comedy, Family, Animation
     sort: "popularity.desc",
   },
   romantik: {
     label: "🌹 Romantik Akşam",
     movieGenres: [10749, 18],   // Romance, Drama
-    tvGenres:    [10749, 18],   // Romance, Drama
-    sort: "popularity.desc",
+    tvGenres:    [18],          // TV'de Romance türü yok, Drama yeterli
+    sort: "vote_average.desc",
   },
   duygusal: {
     label: "😢 İyi Bir Ağlama",
     movieGenres: [18],          // Drama
     tvGenres:    [18],          // Drama
     sort: "vote_average.desc",
-    voteMin: 2000,
+    voteMin: 500,
   },
   aksiyon: {
     label: "💥 Aksiyon & Gerilim",
@@ -48,7 +54,7 @@ const MOODS = {
   gizem: {
     label: "🔍 Suç & Gizem",
     movieGenres: [80, 9648],    // Crime, Mystery
-    tvGenres:    [80, 9648],    // Crime, Mystery
+    tvGenres:    [80, 9648],    // Crime, Mystery — her ikisi TV'de de var
     sort: "popularity.desc",
   },
   bilimkurgu: {
@@ -56,18 +62,17 @@ const MOODS = {
     movieGenres: [878],         // Science Fiction
     tvGenres:    [10765],       // Sci-Fi & Fantasy
     sort: "popularity.desc",
-    voteMin: 800,
   },
   korku: {
     label: "👻 Korku Gecesi",
     movieGenres: [27, 53],      // Horror, Thriller
-    tvGenres:    [27, 9648],    // Horror, Mystery
+    tvGenres:    [27, 9648],    // Horror, Mystery — TV'de Thriller yok
     sort: "popularity.desc",
   },
   belgesel: {
     label: "🎙️ Belgesel & Gerçek",
     movieGenres: [99],          // Documentary
-    tvGenres:    [99],          // Documentary
+    tvGenres:    [99],          // Documentary — TV'de de var
     sort: "popularity.desc",
   },
   nostalji: {
@@ -75,7 +80,7 @@ const MOODS = {
     movieGenres: [18, 35],      // Drama, Comedy
     tvGenres:    [18, 35],      // Drama, Comedy
     sort: "vote_average.desc",
-    voteMin: 3000,
+    voteMin: 500,
     yearMax: "1999",
   },
 };
@@ -129,7 +134,7 @@ async function fetchMood(moodKey, type, page = 1) {
 
   const params = {
     api_key: TMDB_KEY,
-    with_genres: genres.join(","),
+    with_genres: genres.join("|"),  // | = OR, , = AND — OR çok daha fazla sonuç verir
     sort_by: cfg.sort,
     page,
     "vote_count.gte": type === "series" ? (cfg.voteMin ? Math.floor(cfg.voteMin / 5) : 200) : (cfg.voteMin || 1000),
