@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nuviomood
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: TMDB_API_KEY
+        value: 439c478a771f35c05022f9feabcca01c
+      - key: PORT
+        value: 10000
