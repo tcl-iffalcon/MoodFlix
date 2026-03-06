@@ -49,7 +49,7 @@ const manifest = {
   version: "1.0.0",
   name: "MoodFlix",
   description: "Stremio ve Nuvio'da ruh haline göre film ve dizi keşfet. 🎬",
-  logo: "https://i.imgur.com/qFuHMcl.png",
+  logo: `${process.env.ADDON_URL || "http://localhost:7000"}/logo.svg`,
   resources: ["catalog", "meta"],
   types: ["movie", "series"],
   idPrefixes: ["tmdb:"],
@@ -207,5 +207,31 @@ builder.defineMetaHandler(async ({ type, id }) => {
 
 // ─── Sunucu ───────────────────────────────────────────────────="────────────
 const PORT = process.env.PORT || 7000;
-serveHTTP(builder.getInterface(), { port: PORT });
-console.log(`🎬 MoodFlix çalışıyor → http://localhost:${PORT}/manifest.json`);
+const http = require("http");
+const fs = require("fs");
+const path = require("path");
+
+// stremio-addon-sdk'nin interface'ini al
+const addonInterface = builder.getInterface();
+
+// Logo ve manifest'i serve eden basit HTTP sunucu
+const server = http.createServer((req, res) => {
+  if (req.url === "/logo.svg") {
+    const logoPath = path.join(__dirname, "logo.svg");
+    if (fs.existsSync(logoPath)) {
+      res.writeHead(200, { "Content-Type": "image/svg+xml" });
+      fs.createReadStream(logoPath).pipe(res);
+    } else {
+      res.writeHead(404);
+      res.end("Not found");
+    }
+    return;
+  }
+  // Diğer tüm istekleri addon'a ilet
+  addonInterface.router(req, res);
+});
+
+server.listen(PORT, () => {
+  console.log(`🎬 MoodFlix çalışıyor → http://localhost:${PORT}/manifest.json`);
+  console.log(`🖼️  Logo         → http://localhost:${PORT}/logo.svg`);
+});
