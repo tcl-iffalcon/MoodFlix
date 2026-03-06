@@ -7,7 +7,5 @@ services:
     envVars:
       - key: TMDB_API_KEY
         value: 439c478a771f35c05022f9feabcca01c
-      - key: PORT
-        value: 10000
       - key: ADDON_URL
         value: https://moodflix-6pb8.onrender.com
