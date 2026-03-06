@@ -10,4 +10,4 @@ services:
       - key: PORT
         value: 10000
       - key: ADDON_URL
-        value: https://moodflix.onrender.com
+        value: https://moodflix-6pb8.onrender.com
