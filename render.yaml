@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: nuviomood
+    name: moodflix
     runtime: node
     buildCommand: npm install
     startCommand: node index.js
