@@ -253,14 +253,15 @@ builder.defineMetaHandler(async ({ type, id }) => {
 
 // ─── Sunucu ───────────────────────────────────────────────────="────────────
 const PORT = process.env.PORT || 7000;
-const http = require("http");
+const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const { getRouter } = require("stremio-addon-sdk");
 
-const router = getRouter(builder.getInterface());
+const app = express();
 
-router.get("/logo.svg", (req, res) => {
+// Logo endpoint
+app.get("/logo.svg", (req, res) => {
   const logoPath = path.join(__dirname, "logo.svg");
   if (fs.existsSync(logoPath)) {
     res.setHeader("Content-Type", "image/svg+xml");
@@ -270,7 +271,10 @@ router.get("/logo.svg", (req, res) => {
   }
 });
 
-http.createServer(router).listen(PORT, () => {
+// Stremio addon router'ı Express'e bağla
+app.use("/", getRouter(builder.getInterface()));
+
+app.listen(PORT, () => {
   console.log(`🎬 MoodFlix çalışıyor → http://localhost:${PORT}/manifest.json`);
   console.log(`🖼️  Logo         → http://localhost:${PORT}/logo.svg`);
 });
