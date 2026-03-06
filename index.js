@@ -7,58 +7,20 @@ const TMDB_KEY = process.env.TMDB_API_KEY || "439c478a771f35c05022f9feabcca01c";
 const TMDB_BASE = "https://api.themoviedb.org/3";
 const cache = new NodeCache({ stdTTL: 3600 });
 
-// ─── Ruh Hali → TMDB Eşleme Tablosu ───────────────────────────────────────────
-const MOOD_MAP = {
-  mutlu: {
-    label: "😄 Mutlu & Enerjik",
-    genres: [35, 16],           // Comedy, Animation
-    keywords: [9717, 155477],   // feel-good, uplifting
-    sort: "popularity.desc",
-  },
-  duygusal: {
-    label: "😢 Duygusal",
-    genres: [18, 10749],        // Drama, Romance
-    keywords: [9748, 10683],    // emotional, touching
-    sort: "vote_average.desc",
-  },
-  stresli: {
-    label: "😰 Kaçmak İstiyorum",
-    genres: [12, 14],           // Adventure, Fantasy
-    keywords: [4379, 9882],     // escapism, fantasy world
-    sort: "popularity.desc",
-  },
-  heyecan: {
-    label: "😱 Heyecan İstiyorum",
-    genres: [28, 53],           // Action, Thriller
-    keywords: [10084, 3801],    // suspense, adrenaline
-    sort: "popularity.desc",
-  },
-  dusunmek: {
-    label: "🧠 Düşünmek İstiyorum",
-    genres: [878, 9648],        // Sci-Fi, Mystery
-    keywords: [10540, 14526],   // thought-provoking, philosophical
-    sort: "vote_average.desc",
-  },
-  rahatlamak: {
-    label: "😴 Rahatlamak İstiyorum",
-    genres: [99, 35],           // Documentary, Comedy
-    keywords: [207317, 9882],   // cozy, light
-    sort: "vote_average.desc",
-  },
-  korku: {
-    label: "👻 Korku Gecesi",
-    genres: [27],               // Horror
-    keywords: [10218, 6152],    // atmospheric horror, slasher
-    sort: "popularity.desc",
-  },
-  nostalji: {
-    label: "🕰️ Nostalji",
-    genres: [18, 35],
-    keywords: [158718, 276130], // 80s, 90s
-    sort: "vote_average.desc",
-    releaseDateMax: "1999-12-31",
-  },
+// ─── Ruh Hali Tanımları ───────────────────────────────────────────────────────
+const MOODS = {
+  mutlu:      { label: "😄 Mutlu & Enerjik",      genres: [35, 16],    sort: "popularity.desc" },
+  duygusal:   { label: "😢 Duygusal",              genres: [18, 10749], sort: "vote_average.desc" },
+  stresli:    { label: "😰 Kaçmak İstiyorum",      genres: [12, 14],    sort: "popularity.desc" },
+  heyecan:    { label: "😱 Heyecan İstiyorum",     genres: [28, 53],    sort: "popularity.desc" },
+  dusunmek:   { label: "🧠 Düşünmek İstiyorum",    genres: [878, 9648], sort: "vote_average.desc" },
+  rahatlamak: { label: "😴 Rahatlamak İstiyorum",  genres: [99, 35],    sort: "vote_average.desc" },
+  korku:      { label: "👻 Korku Gecesi",           genres: [27],        sort: "popularity.desc" },
+  nostalji:   { label: "🕰️ Nostalji",              genres: [18, 35],    sort: "vote_average.desc", yearMax: "1999" },
 };
+
+const MOOD_KEYS = Object.keys(MOODS);
+const MOOD_LABELS = MOOD_KEYS.map((k) => MOODS[k].label);
 
 // ─── Manifest ─────────────────────────────────────────────────────────────────
 const manifest = {
@@ -71,52 +33,55 @@ const manifest = {
   types: ["movie", "series"],
   idPrefixes: ["tmdb:"],
   catalogs: [
-    ...Object.entries(MOOD_MAP).map(([id, mood]) => ({
-      id: `mood_${id}_movie`,
+    {
+      id: "nuviomood_all",
       type: "movie",
-      name: mood.label,
-      extra: [{ name: "skip", isRequired: false }],
-    })),
-    ...Object.entries(MOOD_MAP).map(([id, mood]) => ({
-      id: `mood_${id}_series`,
+      name: "🎬 NuvioMood",
+      extra: [
+        { name: "genre", isRequired: false, options: MOOD_LABELS },
+        { name: "skip", isRequired: false },
+      ],
+    },
+    {
+      id: "nuviomood_all_series",
       type: "series",
-      name: mood.label,
-      extra: [{ name: "skip", isRequired: false }],
-    })),
+      name: "📺 NuvioMood",
+      extra: [
+        { name: "genre", isRequired: false, options: MOOD_LABELS },
+        { name: "skip", isRequired: false },
+      ],
+    },
   ],
 };
 
 const builder = new addonBuilder(manifest);
 
-// ─── TMDB'den İçerik Çek ──────────────────────────────────────────────────────
-async function fetchFromTMDB(mood, type, page = 1) {
-  const cacheKey = `${mood}_${type}_${page}`;
-  const cached = cache.get(cacheKey);
-  if (cached) return cached;
+// ─── TMDB Fetch ───────────────────────────────────────────────────────────────
+async function fetchMood(moodKey, type, page = 1) {
+  const cacheKey = `${moodKey}_${type}_${page}`;
+  const hit = cache.get(cacheKey);
+  if (hit) return hit;
 
-  const cfg = MOOD_MAP[mood];
-  if (!cfg) return [];
-
+  const cfg = MOODS[moodKey];
   const mediaType = type === "series" ? "tv" : "movie";
+
   const params = {
     api_key: TMDB_KEY,
     with_genres: cfg.genres.join(","),
     sort_by: cfg.sort,
     page,
-    "vote_count.gte": 100,
+    "vote_count.gte": 150,
     include_adult: false,
     language: "tr-TR",
   };
 
-  if (cfg.releaseDateMax) {
+  if (cfg.yearMax) {
     params[mediaType === "movie" ? "release_date.lte" : "first_air_date.lte"] =
-      cfg.releaseDateMax;
+      `${cfg.yearMax}-12-31`;
   }
 
   try {
-    const url = `${TMDB_BASE}/discover/${mediaType}`;
-    const { data } = await axios.get(url, { params });
-
+    const { data } = await axios.get(`${TMDB_BASE}/discover/${mediaType}`, { params });
     const results = (data.results || []).map((item) => ({
       id: `tmdb:${item.id}`,
       type,
@@ -135,22 +100,34 @@ async function fetchFromTMDB(mood, type, page = 1) {
     cache.set(cacheKey, results);
     return results;
   } catch (err) {
-    console.error(`TMDB hata [${mood}/${type}]:`, err.message);
+    console.error(`TMDB hata [${moodKey}/${type}]:`, err.message);
     return [];
   }
 }
 
 // ─── Catalog Handler ──────────────────────────────────────────────────────────
 builder.defineCatalogHandler(async ({ type, id, extra }) => {
-  const match = id.match(/^mood_(.+)_(movie|series)$/);
-  if (!match) return { metas: [] };
+  const isMovie = id === "nuviomood_all" && type === "movie";
+  const isSeries = id === "nuviomood_all_series" && type === "series";
+  if (!isMovie && !isSeries) return { metas: [] };
 
-  const [, mood, moodType] = match;
-  if (moodType !== type) return { metas: [] };
+  const selectedGenre = extra?.genre;
+  const page = extra?.skip ? Math.floor(Number(extra.skip) / 20) + 1 : 1;
 
-  const page = extra?.skip ? Math.floor(extra.skip / 20) + 1 : 1;
-  const metas = await fetchFromTMDB(mood, type, page);
+  // Filtre seçildiyse: sadece o mood
+  if (selectedGenre) {
+    const moodKey = MOOD_KEYS.find((k) => MOODS[k].label === selectedGenre);
+    if (!moodKey) return { metas: [] };
+    const metas = await fetchMood(moodKey, type, page);
+    return { metas };
+  }
 
+  // Filtre yoksa: tüm moodlardan 6'şar içerik, ana sayfa stili
+  const allResults = await Promise.all(
+    MOOD_KEYS.map((key) => fetchMood(key, type, 1))
+  );
+
+  const metas = allResults.flatMap((items) => items.slice(0, 6));
   return { metas };
 });
 
@@ -160,8 +137,8 @@ builder.defineMetaHandler(async ({ type, id }) => {
 
   const tmdbId = id.replace("tmdb:", "");
   const cacheKey = `meta_${type}_${tmdbId}`;
-  const cached = cache.get(cacheKey);
-  if (cached) return { meta: cached };
+  const hit = cache.get(cacheKey);
+  if (hit) return { meta: hit };
 
   const mediaType = type === "series" ? "tv" : "movie";
 
