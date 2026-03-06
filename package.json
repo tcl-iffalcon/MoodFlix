@@ -1,7 +1,7 @@
 {
-  "name": "MoodFlix",
+  "name": "moodflix",
   "version": "1.0.0",
-  "description": "Stremio ve Nuvio'da ruh haline göre film ve dizi keşfet.",
+  "description": "Stremio ve Nuvio'da ruh haline göre film ve dizi keşfet",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
